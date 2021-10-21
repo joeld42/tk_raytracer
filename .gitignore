@@ -1,3 +1,10 @@
+# zig stuff
+zig-cache/
+zig-out/
+
+#output image
+image.ppm
+
 # Prerequisites
 *.d
 
@@ -5,7 +12,6 @@
 *.slo
 *.lo
 *.o
-*.obj
 
 # Precompiled Headers
 *.gch
