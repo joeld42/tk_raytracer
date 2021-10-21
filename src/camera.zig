@@ -1,6 +1,8 @@
 
 const vm = @import("vecmath_j.zig");
+
 //const math = std.math;
+
 const Vec3 = vm.Vec3;
 
 pub const Ray = struct {

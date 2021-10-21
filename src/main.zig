@@ -12,6 +12,8 @@ const vm = @import("vecmath_j.zig");
 const math = std.math;
 const Vec3 = vm.Vec3;
 
+const Random = std.rand.DefaultPrng;
+
 pub const HitRecord = struct {
     point : Vec3,
     normal : Vec3,
@@ -100,11 +102,6 @@ pub fn sceneIsectRay( ray : Ray, scene : Scene, t_min : f32, t_max : f32 ) ?HitR
 
 pub fn traceRay( ray : Ray, scene : Scene ) Vec3 {
 
-    // const sph = Sphere {
-    //     .center = Vec3.init( 0, 0, -1 ),
-    //     .radius = 0.5,
-    // };
-
     const hit : ?HitRecord = sceneIsectRay( ray, scene, 0.0, 100.0 );
     if (hit != null) {
         const hitSph = hit.?;
@@ -113,11 +110,6 @@ pub fn traceRay( ray : Ray, scene : Scene ) Vec3 {
         //                .{ N.v[0], N.v[1], N.v[2], N.length() } );
         return Vec3.mul_s( Vec3.init( N.v[0]+1, N.v[1]+1, N.v[2]+1), 0.5 );
     }
-
-    // if (t > 0.0) {
-    //     var N = Vec3.normalize( Vec3.sub( ray.at( t ), Vec3.init( 0, 0,-1) ) );
-    //     return Vec3.mul_s( Vec3.init( N.v[0]+1, N.v[1]+1, N.v[2]+1), 0.5 );
-    // }
 
     // Background, sky color    
     var dir_n : Vec3 = Vec3.normalize( ray.dir );
@@ -136,10 +128,15 @@ pub fn traceRay( ray : Ray, scene : Scene ) Vec3 {
 
 pub fn traceScene( alloc : *Allocator ) anyerror!void {
 
+    var rng = Random.init( 0 );
+    var f : f32 = rng.random.float( f32 );
+    _ = f;
+
     // Image
     const aspect_ratio : f32 = 16.0 / 9.0;
     const image_width: usize = 400;
     const image_height: usize = @floatToInt( usize, @intToFloat( f32, image_width) / aspect_ratio );
+    const samples_per_pixel : usize = 100;
 
     const maxcol : f32 = @intToFloat( f32, image_width-1 );
     const maxrow : f32 = @intToFloat( f32, image_height-1 );
@@ -177,13 +174,25 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
             std.log.info("Scanlines remaining: {d}", .{j} );
         }
         while ( i < image_width ) : (i += 1 ) {
+            
+            var color_accum = Vec3.initZero();
+            var s : usize = 0;
+            while ( s < samples_per_pixel) : ( s += 1) {
 
-            var u : f32 = @intToFloat( f32, i ) / maxcol;
-            var v : f32 = @intToFloat( f32, j ) / maxrow;
+                // jitter sample
+                const uu = rng.random.float( f32 );
+                const vv = rng.random.float( f32 );
 
-            const r : Ray = cam.genRay( u, v );
+                var u : f32 = (@intToFloat( f32, i ) + uu) / maxcol;
+                var v : f32 = (@intToFloat( f32, j ) + vv) / maxrow;
 
-            var color : Vec3 = traceRay( r, scene );
+
+                const r : Ray = cam.genRay( u, v );
+                var sample_color : Vec3 = traceRay( r, scene );
+
+                color_accum = Vec3.add( color_accum, sample_color );
+            }
+            var color = Vec3.mul_s( color_accum, 1.0 / @intToFloat( f32, samples_per_pixel) );
             _ = try writePixel( file, color );
 
         }
