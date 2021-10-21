@@ -1,23 +1,16 @@
 const std = @import("std");
-const vm = @import("vecmath");
 const mem = std.mem;
 
 const Allocator = mem.Allocator;
 const ArrayList = std.ArrayList;
 
+const camera = @import("camera.zig");
+const Camera = camera.Camera;
+const Ray = camera.Ray;
+
+const vm = @import("vecmath_j.zig");
 const math = std.math;
 const Vec3 = vm.Vec3;
-
-
-pub const Ray = struct {
-    orig : Vec3,
-    dir : Vec3,
-
-    pub inline fn at( ray: Ray, t: f32 ) Vec3 {
-        var result : Vec3 = Vec3.add( ray.orig ,Vec3.mul_s( ray.dir, t ) );
-        return result;
-    }
-};
 
 pub const HitRecord = struct {
     point : Vec3,
@@ -152,34 +145,21 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     const maxrow : f32 = @intToFloat( f32, image_height-1 );
 
     // Camera
-    const viewport_height : f32 = 2.0;
-    const viewport_width : f32 = aspect_ratio * viewport_height;
-    const focal_length : f32 = 1.0;
+    const cam : Camera = Camera.init();
 
-    const origin = Vec3.initZero();
-    const horizontal = Vec3.init( viewport_width, 0, 0 );
-    const vertical = Vec3.init( 0, viewport_height, 0 );    
-
-    // lower_left_corner = origin - horizontal/2 - vertical/2 - vec3(0,0, focal_len );
-    const half_h : Vec3 = Vec3.mul_s( horizontal, 0.5 );
-    const half_v : Vec3 = Vec3.mul_s( vertical, 0.5 );
-    std.log.info("half_v is {d} {d} {d}", .{ half_v.v[0], half_v.v[1], half_v.v[2] } );
-    const cam_z : Vec3 = Vec3.init( 0, 0, focal_length );
-
-    const o_minus_h = Vec3.sub( origin, half_h );
-    const omh_minus_v = Vec3.sub( o_minus_h, half_v );    
-    const lower_left_corner : Vec3 = Vec3.sub( omh_minus_v, cam_z );
-
-    std.log.info( "LLC is {d} {d} {d}", . { lower_left_corner.v[0], lower_left_corner.v[1], lower_left_corner.v[2] });
-
-    // Scene
-    const sph = Sphere {
-        .center = Vec3.init( 0, 0, -1 ),
-        .radius = 0.5,
-    };
+    // Scene    
     var scene = Scene.init( alloc );
     defer scene.deinit();
-    try scene.sphereList.append( sph );
+
+    try scene.sphereList.append( Sphere {
+        .center = Vec3.init( 0, 0, -1 ),
+        .radius = 0.5,
+    } );
+
+    try scene.sphereList.append( Sphere {
+        .center = Vec3.init( 0, -100.5, -1 ),
+        .radius = 100.0,
+    } );
 
     // Scene output
     const file = try std.fs.cwd().createFile(
@@ -201,12 +181,7 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
             var u : f32 = @intToFloat( f32, i ) / maxcol;
             var v : f32 = @intToFloat( f32, j ) / maxrow;
 
-            var rd : Vec3 = Vec3.add( lower_left_corner, Vec3.mul_s( horizontal, u ) );
-            rd = Vec3.add( rd, Vec3.mul_s( vertical, v ) );
-            rd = Vec3.sub( rd, origin );
-
-            const r : Ray = .{ .orig = origin,
-                               .dir = rd };
+            const r : Ray = cam.genRay( u, v );
 
             var color : Vec3 = traceRay( r, scene );
             _ = try writePixel( file, color );

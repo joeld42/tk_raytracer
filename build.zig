@@ -13,8 +13,6 @@ pub fn build(b: *std.build.Builder) void {
 
     const exe = b.addExecutable("tk_raytracer",  "src/main.zig");
 
-    exe.addPackagePath("vecmath", "src/vecmath_j.zig");
-
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
