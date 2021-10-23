@@ -14,6 +14,46 @@ const Vec3 = vm.Vec3;
 
 const Random = std.rand.DefaultPrng;
 
+pub fn randomRange( rng: *Random, min : f32, max : f32 ) f32 {
+
+    return min + (max - min) * rng.random.float( f32 );
+}
+
+pub fn randomVec3( rng: *Random ) Vec3 {
+    return Vec3.init( rng.random.float( f32 ), rng.random.float( f32 ), rng.random.float( f32 ) );
+}
+
+pub fn randomVec3Range( rng: *Random, min : f32, max : f32) Vec3 {
+    return Vec3.init( 
+        randomRange( rng, min, max ),
+        randomRange( rng, min, max ),
+        randomRange( rng, min, max )
+    );
+}
+
+pub fn randomInUnitSphere( rng: *Random ) Vec3 {
+    while (true) {
+        var p = randomVec3Range( rng, -1.0, 1.0 );
+        if (p.lengthSq() >= 1.0) {
+            continue;
+        }
+        return p;
+    }
+}
+
+pub fn randomUnitVector( rng: *Random ) Vec3 {
+    return Vec3.normalize( randomInUnitSphere( rng ) );
+}
+
+pub fn randomInHemisphere( rng: *Random, normal : Vec3 ) Vec3 {
+    const unitVec = randomUnitVector( rng );
+    if ( Vec3.dot( unitVec, normal ) > 0.0 ) {
+        return unitVec; // same hemisphere as unit vec
+    } else {
+        return Vec3.mul_s( unitVec, -1.0 );
+    }
+}
+
 pub const HitRecord = struct {
     point : Vec3,
     normal : Vec3,
@@ -100,15 +140,26 @@ pub fn sceneIsectRay( ray : Ray, scene : Scene, t_min : f32, t_max : f32 ) ?HitR
     return best_hit;
 }
 
-pub fn traceRay( ray : Ray, scene : Scene ) Vec3 {
+pub fn traceRay( ray : Ray, scene : Scene, rng : *Random, depth: i32 ) Vec3 {
 
-    const hit : ?HitRecord = sceneIsectRay( ray, scene, 0.0, 100.0 );
+    if (depth <= 0) {
+        return Vec3.initZero();
+    }
+
+    const hit : ?HitRecord = sceneIsectRay( ray, scene, 0.0001, 100.0 );
     if (hit != null) {
         const hitSph = hit.?;
-        const N = hitSph.normal;
-        //std.log.info("N is {d} {d} {d} len {d}",
-        //                .{ N.v[0], N.v[1], N.v[2], N.length() } );
-        return Vec3.mul_s( Vec3.init( N.v[0]+1, N.v[1]+1, N.v[2]+1), 0.5 );
+        //const N = hitSph.normal;
+
+        // normal color
+        // return Vec3.mul_s( Vec3.init( N.v[0]+1, N.v[1]+1, N.v[2]+1), 0.5 );
+
+        //const targetDir = Vec3.add( hitSph.normal, randomUnitVector( rng ) );
+        const targetDir = randomInHemisphere( rng, hitSph.normal );
+        const bounceRay : Ray = .{ .orig = hitSph.point,
+                                    .dir = targetDir };
+        var bounce = traceRay(  bounceRay, scene, rng, depth-1 );
+        return Vec3.mul_s( bounce, 0.5 );
     }
 
     // Background, sky color    
@@ -129,14 +180,13 @@ pub fn traceRay( ray : Ray, scene : Scene ) Vec3 {
 pub fn traceScene( alloc : *Allocator ) anyerror!void {
 
     var rng = Random.init( 0 );
-    var f : f32 = rng.random.float( f32 );
-    _ = f;
 
     // Image
     const aspect_ratio : f32 = 16.0 / 9.0;
     const image_width: usize = 400;
     const image_height: usize = @floatToInt( usize, @intToFloat( f32, image_width) / aspect_ratio );
     const samples_per_pixel : usize = 100;
+    const max_depth : i32 = 50;
 
     const maxcol : f32 = @intToFloat( f32, image_width-1 );
     const maxrow : f32 = @intToFloat( f32, image_height-1 );
@@ -171,7 +221,8 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     while ( true ) : ( j = j - 1) {
         var i : usize = 0;
         if (j % 10 == 0) {
-            std.log.info("Scanlines remaining: {d}", .{j} );
+            //std.log.info("Scanlines remaining: {d}", .{j} );
+            std.debug.print("Scanlines remaining: {d}\n", .{j} );
         }
         while ( i < image_width ) : (i += 1 ) {
             
@@ -188,12 +239,16 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
 
 
                 const r : Ray = cam.genRay( u, v );
-                var sample_color : Vec3 = traceRay( r, scene );
+                var sample_color : Vec3 = traceRay( r, scene, &rng, max_depth );
 
                 color_accum = Vec3.add( color_accum, sample_color );
             }
             var color = Vec3.mul_s( color_accum, 1.0 / @intToFloat( f32, samples_per_pixel) );
-            _ = try writePixel( file, color );
+            var colorGamma = Vec3.init( math.sqrt( color.v[0] ),
+                                            math.sqrt( color.v[1] ),    
+                                            math.sqrt( color.v[2] ) );
+
+            _ = try writePixel( file, colorGamma );
 
         }
         if (j==0) break;
