@@ -7,63 +7,22 @@ const ArrayList = std.ArrayList;
 const camera = @import("camera.zig");
 const Camera = camera.Camera;
 const Ray = camera.Ray;
+const HitRecord = camera.HitRecord;
 
 const vm = @import("vecmath_j.zig");
 const math = std.math;
 const Vec3 = vm.Vec3;
 
+const material = @import("material.zig");
+const Material = material.Material;
+
 const Random = std.rand.DefaultPrng;
-
-pub fn randomRange( rng: *Random, min : f32, max : f32 ) f32 {
-
-    return min + (max - min) * rng.random.float( f32 );
-}
-
-pub fn randomVec3( rng: *Random ) Vec3 {
-    return Vec3.init( rng.random.float( f32 ), rng.random.float( f32 ), rng.random.float( f32 ) );
-}
-
-pub fn randomVec3Range( rng: *Random, min : f32, max : f32) Vec3 {
-    return Vec3.init( 
-        randomRange( rng, min, max ),
-        randomRange( rng, min, max ),
-        randomRange( rng, min, max )
-    );
-}
-
-pub fn randomInUnitSphere( rng: *Random ) Vec3 {
-    while (true) {
-        var p = randomVec3Range( rng, -1.0, 1.0 );
-        if (p.lengthSq() >= 1.0) {
-            continue;
-        }
-        return p;
-    }
-}
-
-pub fn randomUnitVector( rng: *Random ) Vec3 {
-    return Vec3.normalize( randomInUnitSphere( rng ) );
-}
-
-pub fn randomInHemisphere( rng: *Random, normal : Vec3 ) Vec3 {
-    const unitVec = randomUnitVector( rng );
-    if ( Vec3.dot( unitVec, normal ) > 0.0 ) {
-        return unitVec; // same hemisphere as unit vec
-    } else {
-        return Vec3.mul_s( unitVec, -1.0 );
-    }
-}
-
-pub const HitRecord = struct {
-    point : Vec3,
-    normal : Vec3,
-    t : f32,
-    front_face : bool,
-};
+const util = @import("utils.zig");
 
 pub const Sphere = struct {
     center : Vec3,
     radius : f32,
+    material : *const Material,    
 };
 
 pub const Scene = struct {
@@ -115,7 +74,8 @@ pub fn sphereIsectRay( ray : Ray, sphere : Sphere, t_min : f32, t_max : f32 ) ?H
         .t = root,
         .point = p,
         .normal = if (front) n else Vec3.mul_s( n, -1.0 ),
-        .front_face = front
+        .front_face = front,
+        .mtl = sphere.material
     };
 }
 
@@ -146,20 +106,26 @@ pub fn traceRay( ray : Ray, scene : Scene, rng : *Random, depth: i32 ) Vec3 {
         return Vec3.initZero();
     }
 
-    const hit : ?HitRecord = sceneIsectRay( ray, scene, 0.0001, 100.0 );
+    const hit : ?HitRecord = sceneIsectRay( ray, scene, 0.0001, 1000.0 );
     if (hit != null) {
         const hitSph = hit.?;
-        //const N = hitSph.normal;
 
-        // normal color
-        // return Vec3.mul_s( Vec3.init( N.v[0]+1, N.v[1]+1, N.v[2]+1), 0.5 );
+        // const targetDir = util.randomInHemisphere( rng, hitSph.normal );
+        // const bounceRay : Ray = .{ .orig = hitSph.point,
+        //                             .dir = targetDir };
+        // var bounce = traceRay(  bounceRay, scene, rng, depth-1 );
+        // return Vec3.mul( bounce, hitSph.mtl.albedo );
 
-        //const targetDir = Vec3.add( hitSph.normal, randomUnitVector( rng ) );
-        const targetDir = randomInHemisphere( rng, hitSph.normal );
-        const bounceRay : Ray = .{ .orig = hitSph.point,
-                                    .dir = targetDir };
-        var bounce = traceRay(  bounceRay, scene, rng, depth-1 );
-        return Vec3.mul_s( bounce, 0.5 );
+        const result = hitSph.mtl.scatter( rng, ray, hitSph );
+        if (result != null) {
+            const resultScatter = result.?;
+            
+            var bounce = traceRay(  resultScatter.scatterRay, 
+                            scene, rng, depth-1 );
+            return Vec3.mul( resultScatter.attenuation, bounce );
+        } else {
+            return Vec3.initZero();
+        }
     }
 
     // Background, sky color    
@@ -184,6 +150,7 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     // Image
     const aspect_ratio : f32 = 16.0 / 9.0;
     const image_width: usize = 400;
+    //const image_width: usize = 100; // small for testing
     const image_height: usize = @floatToInt( usize, @intToFloat( f32, image_width) / aspect_ratio );
     const samples_per_pixel : usize = 100;
     const max_depth : i32 = 50;
@@ -197,15 +164,34 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     // Scene    
     var scene = Scene.init( alloc );
     defer scene.deinit();
+    
+    const mtlSphere = Material.makeLambertian( Vec3.init( 1.0, 0.2, 0.22  ) );
+    const mtlGround = Material.makeLambertian( Vec3.init( 0.8, 0.8, 0.8  ) );
+    const mtlShiny = Material { .metalness = 1.0, .albedo = Vec3.init( 0.8, 0.6, 0.3 ), .roughness = 0.3 };
+    const mtlShiny2 = Material { .metalness = 1.0, .albedo = Vec3.init( 0.8, 0.81, 1.0 ), .roughness = 1.0 };
 
     try scene.sphereList.append( Sphere {
         .center = Vec3.init( 0, 0, -1 ),
-        .radius = 0.5,
+        .radius = 0.5,    
+        .material = &mtlSphere,    
     } );
 
     try scene.sphereList.append( Sphere {
+        .center = Vec3.init( 1, 0, -1 ),
+        .radius = 0.5,    
+        .material = &mtlShiny,    
+    } );
+    try scene.sphereList.append( Sphere {
+        .center = Vec3.init( -1, 0, -1 ),
+        .radius = 0.5,    
+        .material = &mtlShiny2,    
+    } );
+
+    // ground
+    try scene.sphereList.append( Sphere {
         .center = Vec3.init( 0, -100.5, -1 ),
         .radius = 100.0,
+        .material = &mtlGround,
     } );
 
     // Scene output
@@ -216,6 +202,8 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
 
     _ = try file.writer().print("P3\n", .{} );
     _ = try file.writer().print("{d} {d}\n255\n", .{  image_width, image_height  });
+
+    std.debug.print("Sizeof Sphere is {d}\n", .{ @sizeOf(Sphere) } );
 
     var j : usize = image_height-1;
     while ( true ) : ( j = j - 1) {

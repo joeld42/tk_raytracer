@@ -5,6 +5,10 @@ const vm = @import("vecmath_j.zig");
 
 const Vec3 = vm.Vec3;
 
+const material = @import("material.zig");
+const Material = material.Material;
+
+
 pub const Ray = struct {
     orig : Vec3,
     dir : Vec3,
@@ -13,6 +17,14 @@ pub const Ray = struct {
         var result : Vec3 = Vec3.add( ray.orig ,Vec3.mul_s( ray.dir, t ) );
         return result;
     }
+};
+
+pub const HitRecord = struct {
+    point : Vec3,
+    normal : Vec3,
+    t : f32,
+    front_face : bool,
+    mtl : *const Material,
 };
 
 

@@ -22,6 +22,11 @@ pub const Vec3 = extern struct {
         return static.zero;
     }
 
+    pub inline fn checkZero( a:Vec3 ) bool {
+        const s = 0.0000001;
+        return ( (@fabs(a.v[0]) < s ) and (@fabs(a.v[1]) < s ) and (@fabs(a.v[2]) < s ) );
+    }
+
     pub inline fn dot( a: Vec3, b: Vec3 ) f32 {
         return a.v[0] * b.v[0] + a.v[1] * b.v[1] + a.v[2]*b.v[2];
     }
@@ -66,6 +71,10 @@ pub const Vec3 = extern struct {
         // assert(!math.approxEq(f32, len, 0.0, epsilon));
         const rcplen = 1.0 / len;
         return .{ .v = [_]f32{ rcplen * a.v[0], rcplen * a.v[1], rcplen * a.v[2] } };
+    }
+
+    pub inline fn reflect( v : Vec3, n : Vec3 ) Vec3 {
+        return  Vec3.sub( v, Vec3.mul_s( n, 2.0 * Vec3.dot( v, n ) ) );
     }
 
 };
