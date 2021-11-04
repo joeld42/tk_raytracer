@@ -84,8 +84,8 @@ pub const Material = struct {
             //const refracted = Vec3.refract( unit_dir, hit.normal, ray_ior );
             return ScatterResult {                 
                 .scatterRay = Ray { .orig = hit.point, .dir = scatter_dir },
-                //.attenuation = self.albedo
-                .attenuation = Vec3.init (1.0, 1.0, 1.0 )
+                .attenuation = self.albedo
+                //.attenuation = Vec3.init (1.0, 1.0, 1.0 )
             };
 
         } else if (self.metalness > 0.5 ) {
