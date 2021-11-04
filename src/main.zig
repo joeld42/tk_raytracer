@@ -159,7 +159,11 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     const maxrow : f32 = @intToFloat( f32, image_height-1 );
 
     // Camera
-    const cam : Camera = Camera.init();
+    const cam : Camera = Camera.init( 
+        Vec3.init( -2, 2, 1),
+        Vec3.init( 0, 0, -1 ),
+        Vec3.init( 0, 1, 0 ), // up vector
+        20.0, aspect_ratio );
 
     // Scene    
     var scene = Scene.init( alloc );

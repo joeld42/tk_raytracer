@@ -31,7 +31,7 @@ pub const Vec3 = extern struct {
         return a.v[0] * b.v[0] + a.v[1] * b.v[1] + a.v[2]*b.v[2];
     }
 
-    pub inline fn cross( a: Vec3, b:Vec3 ) f32 {
+    pub inline fn cross( a: Vec3, b:Vec3 ) Vec3 {
         return . {
             .v = [_]f32{
                 a.v[1] * b.v[2] - a.v[2] * b.v[1],

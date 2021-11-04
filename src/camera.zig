@@ -1,7 +1,8 @@
 
 const vm = @import("vecmath_j.zig");
 
-//const math = std.math;
+const std = @import("std");
+const math = std.math;
 
 const Vec3 = vm.Vec3;
 
@@ -36,23 +37,35 @@ pub const Camera = struct {
     horizontal : Vec3,
     vertical : Vec3,
 
-    pub fn init() Camera {
-        const aspect_ratio : f32 = 16.0 / 9.0;
-        const viewport_height : f32 = 2.0;
-        const viewport_width : f32 = aspect_ratio * viewport_height;
-        const focal_length : f32 = 1.0;
+    pub fn init( 
+            lookfrom : Vec3,
+            lookat : Vec3,
+            up : Vec3,
+            vertical_fov : f32, aspect_ratio : f32
+        ) Camera {
 
-        const origin = Vec3.initZero();
-        const horizontal = Vec3.init( viewport_width, 0, 0 );
-        const vertical = Vec3.init( 0, viewport_height, 0 );    
+        //const aspect_ratio : f32 = 16.0 / 9.0;
+        const theta = vertical_fov * (math.pi / 180.0);
+        const h = math.tan( theta / 2.0 );
+        const viewport_height : f32 = h;
+        const viewport_width : f32 = aspect_ratio * viewport_height;
+        //const focal_length : f32 = 1.0;
+
+        const w = Vec3.normalize( Vec3.sub( lookfrom, lookat ));
+        const u = Vec3.normalize( Vec3.cross( up, w ));
+        const v = Vec3.cross( w, u );
+
+        const origin = lookfrom;
+        const horizontal = Vec3.mul_s( u, viewport_width );
+        const vertical = Vec3.mul_s( v, viewport_height );    
 
         const half_h : Vec3 = Vec3.mul_s( horizontal, 0.5 );
         const half_v : Vec3 = Vec3.mul_s( vertical, 0.5 );
-        const cam_z : Vec3 = Vec3.init( 0, 0, focal_length );
+        //const cam_z : Vec3 = Vec3.init( 0, 0, focal_length );
 
         const o_minus_h = Vec3.sub( origin, half_h );
         const omh_minus_v = Vec3.sub( o_minus_h, half_v );    
-        const lower_left_corner : Vec3 = Vec3.sub( omh_minus_v, cam_z );
+        const lower_left_corner : Vec3 = Vec3.sub( omh_minus_v, w );
 
         return .{ 
             .origin = origin,
