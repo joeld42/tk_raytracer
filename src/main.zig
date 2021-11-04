@@ -167,8 +167,9 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     
     const mtlSphere = Material.makeLambertian( Vec3.init( 1.0, 0.2, 0.22  ) );
     const mtlGround = Material.makeLambertian( Vec3.init( 0.8, 0.8, 0.8  ) );
-    const mtlShiny = Material { .metalness = 1.0, .albedo = Vec3.init( 0.8, 0.6, 0.3 ), .roughness = 0.3 };
-    const mtlShiny2 = Material { .metalness = 1.0, .albedo = Vec3.init( 0.8, 0.81, 1.0 ), .roughness = 1.0 };
+    const mtlShiny = Material.makeMetallic( Vec3.init( 0.8, 0.6, 0.3 ), 0.3 );
+    //const mtlShiny2 = Material.makeMetallic( Vec3.init( 0.8, 0.81, 1.0 ), 1.0 );
+    const mtlShiny2 = Material.makeGlass( Vec3.init( 0.8, 0.81, 1.0 ), 1.5 );
 
     try scene.sphereList.append( Sphere {
         .center = Vec3.init( 0, 0, -1 ),

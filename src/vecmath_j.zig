@@ -77,4 +77,12 @@ pub const Vec3 = extern struct {
         return  Vec3.sub( v, Vec3.mul_s( n, 2.0 * Vec3.dot( v, n ) ) );
     }
 
+    pub inline fn refract( uv : Vec3, n : Vec3, etai_over_etat : f32 ) Vec3 {
+        const cos_theta = math.min( Vec3.dot( Vec3.mul_s( uv, -1.0), n ), 1.0 );
+        const r_out_perp = Vec3.mul_s( Vec3.add( Vec3.mul_s( n, cos_theta ), uv ), etai_over_etat );
+        const r_out_parallel_mag = -math.sqrt( math.fabs(1.0 - Vec3.lengthSq( r_out_perp ) ));
+        const r_out_parallel = Vec3.mul_s( n, r_out_parallel_mag );
+        return Vec3.add( r_out_perp, r_out_parallel );
+    }
+
 };
