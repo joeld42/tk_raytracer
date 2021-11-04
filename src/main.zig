@@ -150,11 +150,11 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     // Image
     //const aspect_ratio : f32 = 16.0 / 9.0;
     const aspect_ratio : f32 = 3.0 / 2.0;
-    //const image_width: usize = 800;
-    const image_width: usize = 200; // small for testing
+    const image_width: usize = 800;
+    //const image_width: usize = 200; // small for testing
     const image_height: usize = @floatToInt( usize, @intToFloat( f32, image_width) / aspect_ratio );
-    //const samples_per_pixel : usize = 200;
-    const samples_per_pixel : usize = 32;
+    const samples_per_pixel : usize = 200;
+    //const samples_per_pixel : usize = 32;
     const max_depth : i32 = 50;
 
     const maxcol : f32 = @intToFloat( f32, image_width-1 );
@@ -214,11 +214,12 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
         var b : i32 = -11;
         while ( b < 11) : ( b += 1) {
             
-            const center = Vec3.init( @intToFloat( f32, a) + rng.random.float( f32 ) * 0.9,
+            const center = Vec3.init( @intToFloat( f32, a) + rng.random().float( f32 ) * 0.9,
                                       0.2,
-                                      @intToFloat( f32, b) + rng.random.float( f32 ) * 0.9 );
+                                      @intToFloat( f32, b) + rng.random().float( f32 ) * 0.9
+                    );
 
-            var choose_mat = rng.random.float( f32 );            
+            var choose_mat = rng.random().float( f32 );                                    
             var mtlSphere = try mtl_alloc.allocator.create( Material );            
 
             if (choose_mat < 0.6) {
@@ -274,8 +275,8 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
             while ( s < samples_per_pixel) : ( s += 1) {
 
                 // jitter sample
-                const uu = rng.random.float( f32 );
-                const vv = rng.random.float( f32 );
+                const uu = rng.random().float( f32 );
+                const vv = rng.random().float( f32 );
 
                 var u : f32 = (@intToFloat( f32, i ) + uu) / maxcol;
                 var v : f32 = (@intToFloat( f32, j ) + vv) / maxrow;

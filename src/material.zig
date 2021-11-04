@@ -77,7 +77,7 @@ pub const Material = struct {
 
 
             const scatter_dir = if ((cannot_refract) or 
-                                    (reflectance_schlick( cos_theta, ray_ior ) > rng.random.float( f32 ) ))
+                                    (reflectance_schlick( cos_theta, ray_ior ) > rng.random().float( f32 ) ))
                                 Vec3.reflect( unit_dir, hit.normal ) 
                             else Vec3.refract( unit_dir, hit.normal, ray_ior );
 

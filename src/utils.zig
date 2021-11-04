@@ -7,11 +7,11 @@ const Random = std.rand.DefaultPrng;
 
 pub fn randomRange( rng: *Random, min : f32, max : f32 ) f32 {
 
-    return min + (max - min) * rng.random.float( f32 );
+    return min + (max - min) * rng.random().float( f32 );
 }
 
 pub fn randomVec3( rng: *Random ) Vec3 {
-    return Vec3.init( rng.random.float( f32 ), rng.random.float( f32 ), rng.random.float( f32 ) );
+    return Vec3.init( rng.random().float( f32 ), rng.random().float( f32 ), rng.random().float( f32 ) );
 }
 
 pub fn randomVec3Range( rng: *Random, min : f32, max : f32) Vec3 {
