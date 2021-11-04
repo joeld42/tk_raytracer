@@ -148,9 +148,10 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     var rng = Random.init( 0 );
 
     // Image
-    const aspect_ratio : f32 = 16.0 / 9.0;
-    const image_width: usize = 400;
-    //const image_width: usize = 100; // small for testing
+    //const aspect_ratio : f32 = 16.0 / 9.0;
+    const aspect_ratio : f32 = 3.0 / 2.0;
+    //const image_width: usize = 400;
+    const image_width: usize = 200; // small for testing
     const image_height: usize = @floatToInt( usize, @intToFloat( f32, image_width) / aspect_ratio );
     const samples_per_pixel : usize = 100;
     const max_depth : i32 = 50;
@@ -159,47 +160,119 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     const maxrow : f32 = @intToFloat( f32, image_height-1 );
 
     // Camera
-    const lookfrom = Vec3.init( -3, 3, 2);
-    const lookat = Vec3.init( 0, 0, -1 );
-    const focus_dist = Vec3.length( Vec3.sub( lookfrom, lookat ) );
-    const aperture :f32 = 2.0;
+    const lookfrom = Vec3.init( 13, 2, 3);
+    const lookat = Vec3.init( 0, 0, 0 );
+    //const focus_dist = Vec3.length( Vec3.sub( lookfrom, lookat ) );
+    const focus_dist = 10.0;
+    const aperture :f32 = 0.01;
     const cam : Camera = Camera.init( 
         lookfrom, lookat, Vec3.init( 0, 1, 0 ), // up vector
-        20.0, aspect_ratio, aperture, focus_dist );
+        40.0, aspect_ratio, aperture, focus_dist );
 
     // Scene    
     var scene = Scene.init( alloc );
     defer scene.deinit();
-    
-    const mtlSphere = Material.makeLambertian( Vec3.init( 1.0, 0.2, 0.22  ) );
-    const mtlGround = Material.makeLambertian( Vec3.init( 0.8, 0.8, 0.8  ) );
-    const mtlShiny = Material.makeMetallic( Vec3.init( 0.8, 0.6, 0.3 ), 0.3 );
-    //const mtlShiny2 = Material.makeMetallic( Vec3.init( 0.8, 0.81, 1.0 ), 1.0 );
-    const mtlShiny2 = Material.makeGlass( Vec3.init( 0.8, 0.81, 1.0 ), 1.5 );
 
+    // ground    
+    const mtlGround = Material.makeLambertian( Vec3.init( 0.5, 0.8, 0.5  ) );    
     try scene.sphereList.append( Sphere {
-        .center = Vec3.init( 0, 0, -1 ),
-        .radius = 0.5,    
-        .material = &mtlSphere,    
-    } );
-
-    try scene.sphereList.append( Sphere {
-        .center = Vec3.init( 1, 0, -1 ),
-        .radius = 0.5,    
-        .material = &mtlShiny,    
-    } );
-    try scene.sphereList.append( Sphere {
-        .center = Vec3.init( -1, 0, -1 ),
-        .radius = 0.5,    
-        .material = &mtlShiny2,    
-    } );
-
-    // ground
-    try scene.sphereList.append( Sphere {
-        .center = Vec3.init( 0, -100.5, -1 ),
-        .radius = 100.0,
+        .center = Vec3.init( 0, -1000, 0 ),
+        .radius = 1000.0,
         .material = &mtlGround,
     } );
+
+    // Big Spheres
+    const mtlBigSphere1 = Material.makeGlass( Vec3.init( 1,1,1), 1.5 );
+    try scene.sphereList.append( Sphere {
+        .center = Vec3.init( 0, 1, 0 ),
+        .radius = 1.0,    
+        .material = &mtlBigSphere1,    
+    } );
+
+    const mtlBigSphere2 = Material.makeLambertian( Vec3.init( 0.4, 0.2, 0.1) );
+    try scene.sphereList.append( Sphere {
+        .center = Vec3.init( -4, 1, 0 ),
+        .radius = 1.0,    
+        .material = &mtlBigSphere2,    
+    } );
+
+    const mtlBigSphere3 = Material.makeMetallic( Vec3.init( 0.7, 0.6, 0.5), 0.0 );
+    try scene.sphereList.append( Sphere {
+        .center = Vec3.init( 4, 1, 0 ),
+        .radius = 1.0,    
+        .material = &mtlBigSphere3,
+    } );
+
+    // FIXME: how to do this?
+    // var sphereMtls : [50]Material = {};
+    // var mndx : i32 = 0;
+    // while (mndx < 50) : (mndx += 1) {
+    //         var choose_mat = rng.random.float( f32 );            
+            // if (choose_mat < 0.8) {
+            //     // Diffuse
+            //     const color1 = util.randomVec3( &rng );
+            //     const albedo= Vec3.init( color1.v[0]*color1.v[0],
+            //                         color1.v[1]*color1.v[1],
+            //                         color1.v[2]*color1.v[2] );
+            //     sphereMtls[mndx] = Material.makeLambertian( albedo );
+            // } else if (choose_mat < 0.95 ) {
+            //     // Metal
+            //     const roughness = util.randomRange( &rng, 0.0, 0.5 );
+            //     const grey = util.randomRange( &rng, 0.5, 1.0 );
+            //     const albedo= Vec3.init( grey, grey, grey );
+            //     sphereMtls[mndx] = Material.makeMetallic( albedo, roughness );
+            // } else {
+            //     // Glass
+            //     const color1 = util.randomVec3( &rng );
+            //     const absorption= Vec3.init( color1.v[0]*color1.v[0],
+            //                         color1.v[1]*color1.v[1],
+            //                         color1.v[2]*color1.v[2] );
+            //     sphereMtls[mndx] = Material.makeGlass( absorption, 0.2 );
+            // }
+    //}
+
+    var a : i32 = -11;
+    while ( a < 11) : ( a += 1) {
+        var b : i32 = -11;
+        while ( b < 11) : ( b += 1) {
+            
+            const center = Vec3.init( @intToFloat( f32, a) + rng.random.float( f32 ) * 0.9,
+                                      0.2,
+                                      @intToFloat( f32, b) + rng.random.float( f32 ) * 0.9 );
+
+            //std.debug.print("Center {d} {d} {d}\n", . { center.v[0], center.v[1], center.v[2] } );
+            var choose_mat = rng.random.float( f32 );            
+            var mtlSphere : Material = Material.makeLambertian( Vec3.init( 1.0, 0.0, 1.0 ));
+            if (choose_mat < 0.8) {
+                // Diffuse
+                const color1 = util.randomVec3( &rng );
+                const albedo= Vec3.init( color1.v[0]*color1.v[0],
+                                    color1.v[1]*color1.v[1],
+                                    color1.v[2]*color1.v[2] );
+                mtlSphere = Material.makeLambertian( albedo );
+            } else if (choose_mat < 0.95 ) {
+                // Metal
+                const roughness = util.randomRange( &rng, 0.0, 0.5 );
+                const grey = util.randomRange( &rng, 0.5, 1.0 );
+                const albedo= Vec3.init( grey, grey, grey );
+                mtlSphere = Material.makeMetallic( albedo, roughness );
+            } else {
+                // Glass
+                const color1 = util.randomVec3( &rng );
+                const absorption= Vec3.init( color1.v[0]*color1.v[0],
+                                    color1.v[1]*color1.v[1],
+                                    color1.v[2]*color1.v[2] );
+                mtlSphere = Material.makeGlass( absorption, 0.2 );
+            }
+
+            try scene.sphereList.append( Sphere {
+                .center = center,
+                .radius = 0.2,    
+                .material = &mtlSphere,
+            } );
+            
+        }
+    }
 
     // Scene output
     const file = try std.fs.cwd().createFile(
