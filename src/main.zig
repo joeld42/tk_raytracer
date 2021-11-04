@@ -150,10 +150,10 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     // Image
     //const aspect_ratio : f32 = 16.0 / 9.0;
     const aspect_ratio : f32 = 3.0 / 2.0;
-    //const image_width: usize = 400;
-    const image_width: usize = 200; // small for testing
+    const image_width: usize = 800;
+    //const image_width: usize = 100; // small for testing
     const image_height: usize = @floatToInt( usize, @intToFloat( f32, image_width) / aspect_ratio );
-    const samples_per_pixel : usize = 100;
+    const samples_per_pixel : usize = 200;
     const max_depth : i32 = 50;
 
     const maxcol : f32 = @intToFloat( f32, image_width-1 );
@@ -203,33 +203,10 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
         .material = &mtlBigSphere3,
     } );
 
-    // FIXME: how to do this?
-    // var sphereMtls : [50]Material = {};
-    // var mndx : i32 = 0;
-    // while (mndx < 50) : (mndx += 1) {
-    //         var choose_mat = rng.random.float( f32 );            
-            // if (choose_mat < 0.8) {
-            //     // Diffuse
-            //     const color1 = util.randomVec3( &rng );
-            //     const albedo= Vec3.init( color1.v[0]*color1.v[0],
-            //                         color1.v[1]*color1.v[1],
-            //                         color1.v[2]*color1.v[2] );
-            //     sphereMtls[mndx] = Material.makeLambertian( albedo );
-            // } else if (choose_mat < 0.95 ) {
-            //     // Metal
-            //     const roughness = util.randomRange( &rng, 0.0, 0.5 );
-            //     const grey = util.randomRange( &rng, 0.5, 1.0 );
-            //     const albedo= Vec3.init( grey, grey, grey );
-            //     sphereMtls[mndx] = Material.makeMetallic( albedo, roughness );
-            // } else {
-            //     // Glass
-            //     const color1 = util.randomVec3( &rng );
-            //     const absorption= Vec3.init( color1.v[0]*color1.v[0],
-            //                         color1.v[1]*color1.v[1],
-            //                         color1.v[2]*color1.v[2] );
-            //     sphereMtls[mndx] = Material.makeGlass( absorption, 0.2 );
-            // }
-    //}
+    // Allocate all the materials to an arena
+    var mtl_alloc = std.heap.ArenaAllocator.init( alloc );
+    defer mtl_alloc.deinit();
+
 
     var a : i32 = -11;
     while ( a < 11) : ( a += 1) {
@@ -240,35 +217,35 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
                                       0.2,
                                       @intToFloat( f32, b) + rng.random.float( f32 ) * 0.9 );
 
-            //std.debug.print("Center {d} {d} {d}\n", . { center.v[0], center.v[1], center.v[2] } );
             var choose_mat = rng.random.float( f32 );            
-            var mtlSphere : Material = Material.makeLambertian( Vec3.init( 1.0, 0.0, 1.0 ));
+            var mtlSphere = try mtl_alloc.allocator.create( Material );            
+
             if (choose_mat < 0.8) {
                 // Diffuse
                 const color1 = util.randomVec3( &rng );
                 const albedo= Vec3.init( color1.v[0]*color1.v[0],
                                     color1.v[1]*color1.v[1],
                                     color1.v[2]*color1.v[2] );
-                mtlSphere = Material.makeLambertian( albedo );
+                mtlSphere.* = Material.makeLambertian( albedo );
             } else if (choose_mat < 0.95 ) {
                 // Metal
                 const roughness = util.randomRange( &rng, 0.0, 0.5 );
                 const grey = util.randomRange( &rng, 0.5, 1.0 );
                 const albedo= Vec3.init( grey, grey, grey );
-                mtlSphere = Material.makeMetallic( albedo, roughness );
+                mtlSphere.* = Material.makeMetallic( albedo, roughness );
             } else {
                 // Glass
                 const color1 = util.randomVec3( &rng );
                 const absorption= Vec3.init( color1.v[0]*color1.v[0],
                                     color1.v[1]*color1.v[1],
                                     color1.v[2]*color1.v[2] );
-                mtlSphere = Material.makeGlass( absorption, 0.2 );
+                mtlSphere.* = Material.makeGlass( absorption, 0.2 );
             }
 
             try scene.sphereList.append( Sphere {
                 .center = center,
                 .radius = 0.2,    
-                .material = &mtlSphere,
+                .material = mtlSphere,
             } );
             
         }
@@ -327,8 +304,6 @@ pub fn main() anyerror!void {
 
     var gpalloc = std.heap.GeneralPurposeAllocator(.{}){};
     defer std.debug.assert(!gpalloc.deinit());
-
-    // const alloc = &gpalloc.allocator;
 
     //std.log.info("All your codebase are belong to us.", .{});
     traceScene( &gpalloc.allocator ) catch |err| {
