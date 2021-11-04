@@ -32,6 +32,14 @@ pub fn randomInUnitSphere( rng: *Random ) Vec3 {
     }
 }
 
+pub fn randomInUnitDisc( rng: *Random ) Vec3 {
+    while (true) {
+        var p = Vec3.init( randomRange( rng, -1, 1 ), randomRange( rng, -1, 1 ), 0.0 );
+        if (p.lengthSq() >= 1) continue;
+        return p;
+    }
+}
+
 pub fn randomUnitVector( rng: *Random ) Vec3 {
     return Vec3.normalize( randomInUnitSphere( rng ) );
 }

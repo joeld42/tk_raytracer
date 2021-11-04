@@ -159,11 +159,13 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
     const maxrow : f32 = @intToFloat( f32, image_height-1 );
 
     // Camera
+    const lookfrom = Vec3.init( -3, 3, 2);
+    const lookat = Vec3.init( 0, 0, -1 );
+    const focus_dist = Vec3.length( Vec3.sub( lookfrom, lookat ) );
+    const aperture :f32 = 2.0;
     const cam : Camera = Camera.init( 
-        Vec3.init( -2, 2, 1),
-        Vec3.init( 0, 0, -1 ),
-        Vec3.init( 0, 1, 0 ), // up vector
-        20.0, aspect_ratio );
+        lookfrom, lookat, Vec3.init( 0, 1, 0 ), // up vector
+        20.0, aspect_ratio, aperture, focus_dist );
 
     // Scene    
     var scene = Scene.init( alloc );
@@ -231,7 +233,7 @@ pub fn traceScene( alloc : *Allocator ) anyerror!void {
                 var v : f32 = (@intToFloat( f32, j ) + vv) / maxrow;
 
 
-                const r : Ray = cam.genRay( u, v );
+                const r : Ray = cam.genRay( &rng, u, v );
                 var sample_color : Vec3 = traceRay( r, scene, &rng, max_depth );
 
                 color_accum = Vec3.add( color_accum, sample_color );
